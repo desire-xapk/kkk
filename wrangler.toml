@@ -1,0 +1,12 @@
+name = "dioptimize-worker"
+main = "src/index.js"
+compatibility_date = "2024-01-01"
+
+[durable_objects]
+bindings = [
+  { name = "USERS_DO", class_name = "UsersDurableObject" }
+]
+
+[[migrations]]
+tag = "v1"
+new_classes = ["UsersDurableObject"]

@@ -30,10 +30,10 @@ function jsonResponse(data, status = 200) {
   });
 }
 
-// Clean up inactive users (not seen in last 15 seconds)
+// Clean up inactive users (not seen in last 10 seconds)
 function cleanupInactiveUsers() {
   const now = Date.now();
-  const timeout = 15000; // 15 seconds
+  const timeout = 10000; // 10 seconds
   
   for (const [username, data] of activeUsers.entries()) {
     if (now - data.lastSeen > timeout) {
@@ -108,20 +108,16 @@ export default {
       // Logout endpoint
       if (path === '/logout' && request.method === 'POST') {
         try {
-          const { username } = await request.json();
-          
-          if (username) {
-            activeUsers.delete(username);
-          }
-        } catch (e) {
-          // Handle sendBeacon which sends text
+          // Read body as text first (works for both fetch and sendBeacon)
           const text = await request.text();
-          try {
+          if (text) {
             const { username } = JSON.parse(text);
             if (username) {
               activeUsers.delete(username);
             }
-          } catch (e2) {}
+          }
+        } catch (e) {
+          console.error('Logout parse error:', e);
         }
 
         return jsonResponse({ success: true });

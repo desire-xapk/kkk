@@ -7,6 +7,9 @@ const ADMIN_USERNAME = 'admin0707';
 // For production, use Durable Objects or KV
 let activeUsers = new Map();
 
+// Pending notifications for users
+let pendingNotifications = new Map();
+
 // CORS headers
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -136,6 +139,55 @@ export default {
           users,
           count: users.length 
         });
+      }
+
+      // Send notification to a user (admin only)
+      if (path === '/notify' && request.method === 'POST') {
+        const { username } = await request.json();
+        
+        if (!username) {
+          return jsonResponse({ success: false, error: 'Username required' }, 400);
+        }
+
+        if (activeUsers.has(username)) {
+          pendingNotifications.set(username, { 
+            type: 'sound',
+            timestamp: Date.now() 
+          });
+          return jsonResponse({ success: true });
+        }
+        
+        return jsonResponse({ success: false, error: 'User not found' }, 404);
+      }
+
+      // Send notification to all users (admin only)
+      if (path === '/notify-all' && request.method === 'POST') {
+        let count = 0;
+        for (const [username] of activeUsers.entries()) {
+          pendingNotifications.set(username, { 
+            type: 'sound',
+            timestamp: Date.now() 
+          });
+          count++;
+        }
+        return jsonResponse({ success: true, notified: count });
+      }
+
+      // Check for pending notifications (called by clients)
+      if (path === '/check-notification' && request.method === 'POST') {
+        const { username } = await request.json();
+        
+        if (!username) {
+          return jsonResponse({ success: false, error: 'Username required' }, 400);
+        }
+
+        if (pendingNotifications.has(username)) {
+          const notification = pendingNotifications.get(username);
+          pendingNotifications.delete(username);
+          return jsonResponse({ success: true, hasNotification: true, notification });
+        }
+        
+        return jsonResponse({ success: true, hasNotification: false });
       }
 
       // Health check

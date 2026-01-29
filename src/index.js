@@ -4,10 +4,9 @@
 const ADMIN_USERNAME = 'admin0707';
 
 // In-memory storage for users (resets on worker restart)
-// For production, use Durable Objects or KV
 let activeUsers = new Map();
 
-// Pending notifications for users
+// Pending notifications for users (Map<username, timestamp>)
 let pendingNotifications = new Map();
 
 // CORS headers
@@ -98,6 +97,7 @@ export default {
         if (activeUsers.has(username)) {
           activeUsers.get(username).lastSeen = Date.now();
         } else {
+          // Re-add user if they timed out but are back
           activeUsers.set(username, {
             username,
             lastSeen: Date.now(),
@@ -149,6 +149,8 @@ export default {
           return jsonResponse({ success: false, error: 'Username required' }, 400);
         }
 
+        // Even if user is not in active list, we can try to set notification
+        // But typically we only notify active users
         if (activeUsers.has(username)) {
           pendingNotifications.set(username, { 
             type: 'sound',
